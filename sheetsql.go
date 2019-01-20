@@ -98,6 +98,11 @@ func (s *SheetStmt) Query(args []driver.Value) (driver.Rows, error) {
 	if err != nil {
 		log.Fatalf("Unable to retrieve Sheets client: %v", err)
 	}
+	/*
+		range, _ := GetTableName(s.query)
+		st.GetSheetData(range)
+		return ExecQuery(s.query, data)
+	*/
 	readRange := ParseQuery(s.query)
 
 	resp, err := srv.Spreadsheets.Values.Get(s.conn.sheetID, readRange).Do()

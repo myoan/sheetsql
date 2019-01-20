@@ -1,13 +1,35 @@
 package sheetsql_test
 
-/*
+import (
+	"testing"
 
-func TestSimpleTokeninzer(t *testing.T) {
-	actual := sql.Tokenize("SELECT * FROM table;")
-	expected := []string{"SELECT", "*", "FROM", "table", "EOQ"}
-	if !reflect.DeepEqual(actual, expected) {
-		t.Errorf("got: %v\nwant: %v", actual, expected)
+	"github.com/myoan/sheetsql"
+)
+
+func TestGetTableName(t *testing.T) {
+	validSQL := []struct {
+		input  string
+		output string
+	}{
+		{
+			input: "select * from tbl",
+		},
+		{
+			input: "insert into tbl values (1)",
+		},
+	}
+
+	for _, tcase := range validSQL {
+		if tcase.output == "" {
+			tcase.output = "tbl"
+		}
+		out, err := sheetsql.GetTableName(tcase.input)
+		if err != nil {
+			t.Errorf("Parse(%q) err: %v, want nil", tcase.input, err)
+			continue
+		}
+		if out != tcase.output {
+			t.Errorf("Parse(%q) = %q, want: %q", tcase.input, out, tcase.output)
+		}
 	}
 }
-
-*/
