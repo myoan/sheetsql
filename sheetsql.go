@@ -5,7 +5,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"io"
-	"net/http"
 	"strings"
 
 	"github.com/myoan/sheetsql/gss"
@@ -22,16 +21,12 @@ func (d *SheetDriver) Open(dsn string) (driver.Conn, error) {
 		return nil, errors.New("invalid dsn")
 	}
 	parts := strings.Split(dsn, "|")
-	client, _ := gss.NewSpreadSheet(parts[0])
-	return &SheetConn{client: client, sheetID: parts[1]}, nil
+	client, _ := gss.NewSpreadSheet(parts[0], parts[1])
+	return &SheetConn{client: client}, nil
 }
 
 type SheetConn struct {
-	client  *http.Client
-	sheetID string
-	key     string
-	secret  string
-	env     string
+	client *gss.Sheet
 }
 
 func (c *SheetConn) Close() error {
@@ -66,8 +61,8 @@ func (s *SheetStmt) Query(args []driver.Value) (driver.Rows, error) {
 }
 
 func (s *SheetStmt) GetSheetData(table string) *SheetRows {
-	columns := gss.GetSheetColumn(s.conn.client, s.conn.sheetID, table)
-	records := gss.GetSheetRecord(s.conn.client, s.conn.sheetID, table, len(columns))
+	columns := s.conn.client.GetSheetColumn(table)
+	records := s.conn.client.GetSheetRecord(table, len(columns))
 	return &SheetRows{s, columns, 0, records}
 }
 

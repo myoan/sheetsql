@@ -4,13 +4,17 @@ import (
 	"context"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
 	sheets "google.golang.org/api/sheets/v4"
 )
+
+type Sheet struct {
+	srv  *sheets.Service
+	SheetID string
+}
 
 func getConfig(jwtJSON []byte) (*jwt.Config, error) {
 	cfg, err := google.JWTConfigFromJSON(
@@ -24,7 +28,7 @@ func getConfig(jwtJSON []byte) (*jwt.Config, error) {
 	return cfg, nil
 }
 
-func NewSpreadSheet(file string) (*http.Client, error) {
+func NewSpreadSheet(file, sheetID string) (*Sheet, error) {
 	cred, err := os.Open(file)
 	if err != nil {
 		return nil, err
@@ -40,16 +44,18 @@ func NewSpreadSheet(file string) (*http.Client, error) {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 		return nil, err
 	}
-	return config.Client(context.Background()), nil
-}
+	client := config.Client(context.Background())
 
-func GetSheetColumn(client *http.Client, sheetID string, rng string) []string {
 	srv, err := sheets.New(client)
 	if err != nil {
 		log.Fatalf("Unable to retrieve Sheets client: %v", err)
 	}
 
-	resp, err := srv.Spreadsheets.Values.Get(sheetID, columnRange(rng)).Do()
+	return &Sheet{srv: srv, SheetID: sheetID}, nil
+}
+
+func (s *Sheet) GetSheetColumn(rng string) []string {
+	resp, err := s.srv.Spreadsheets.Values.Get(s.SheetID, columnRange(rng)).Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve data from sheet: %v", err)
 	}
@@ -61,13 +67,8 @@ func GetSheetColumn(client *http.Client, sheetID string, rng string) []string {
 	return columns
 }
 
-func GetSheetRecord(client *http.Client, sheetID string, rng string, len int) [][]interface{} {
-	srv, err := sheets.New(client)
-	if err != nil {
-		log.Fatalf("Unable to retrieve Sheets client: %v", err)
-	}
-
-	resp, err := srv.Spreadsheets.Values.Get(sheetID, rng+"!A1:" + columnAlphabet(len)).Do()
+func (s *Sheet) GetSheetRecord(rng string, len int) [][]interface{} {
+	resp, err := s.srv.Spreadsheets.Values.Get(s.SheetID, rng+"!A1:"+columnAlphabet(len)).Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve data from sheet: %v", err)
 	}
