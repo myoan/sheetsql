@@ -1,33 +1,15 @@
 package sheetsql
 
 import (
-	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
 	"io"
-	"io/ioutil"
-	"log"
 	"net/http"
-	"os"
 	"strings"
 
-	"golang.org/x/oauth2/google"
-	"golang.org/x/oauth2/jwt"
-	sheets "google.golang.org/api/sheets/v4"
+	"github.com/myoan/sheetsql/gss"
 )
-
-func getConfig(jwtJSON []byte) (*jwt.Config, error) {
-	cfg, err := google.JWTConfigFromJSON(
-		jwtJSON,
-		"https://www.googleapis.com/auth/spreadsheets",
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
 
 func init() {
 	sql.Register("sheetsql", &SheetDriver{})
@@ -40,22 +22,7 @@ func (d *SheetDriver) Open(dsn string) (driver.Conn, error) {
 		return nil, errors.New("invalid dsn")
 	}
 	parts := strings.Split(dsn, "|")
-
-	cred, err := os.Open(parts[0])
-	if err != nil {
-		panic(err)
-	}
-
-	jwtJSON, err := ioutil.ReadAll(cred)
-	if err != nil {
-		panic(err)
-	}
-
-	config, err := getConfig(jwtJSON)
-	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
-	}
-	client := config.Client(context.Background())
+	client, _ := gss.NewSpreadSheet(parts[0])
 	return &SheetConn{client: client, sheetID: parts[1]}, nil
 }
 
@@ -94,27 +61,14 @@ func (s *SheetStmt) NumInput() int {
 }
 
 func (s *SheetStmt) Query(args []driver.Value) (driver.Rows, error) {
-	srv, err := sheets.New(s.conn.client)
-	if err != nil {
-		log.Fatalf("Unable to retrieve Sheets client: %v", err)
-	}
-	/*
-		range, _ := GetTableName(s.query)
-		st.GetSheetData(range)
-		return ExecQuery(s.query, data)
-	*/
-	readRange := ParseQuery(s.query)
+	tbl, _ := GetTableName(s.query)
+	return s.GetSheetData(tbl), nil
+}
 
-	resp, err := srv.Spreadsheets.Values.Get(s.conn.sheetID, readRange).Do()
-	if err != nil {
-		log.Fatalf("Unable to retrieve data from sheet: %v", err)
-	}
-
-	var columns []string
-	for _, elem := range resp.Values[0] {
-		columns = append(columns, elem.(string))
-	}
-	return &SheetRows{s, columns, 0, resp.Values[1:]}, nil
+func (s *SheetStmt) GetSheetData(table string) *SheetRows {
+	columns := gss.GetSheetColumn(s.conn.client, s.conn.sheetID, table)
+	records := gss.GetSheetRecord(s.conn.client, s.conn.sheetID, table, len(columns))
+	return &SheetRows{s, columns, 0, records}
 }
 
 func (s *SheetStmt) Exec(args []driver.Value) (driver.Result, error) {
