@@ -38,6 +38,12 @@ func GetTableName(query string) (string, error) {
 	case *sqlparser.Insert:
 		result := sqlparser.String(stmt.Table)
 		return result, nil
+	case *sqlparser.Update:
+		result := sqlparser.String(stmt.TableExprs)
+		return result, nil
+	case *sqlparser.Delete:
+		result := sqlparser.String(stmt.TableExprs)
+		return result, nil
 	default:
 		return "", nil
 	}

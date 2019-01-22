@@ -17,6 +17,12 @@ func TestGetTableName(t *testing.T) {
 		{
 			input: "insert into tbl values (1)",
 		},
+		{
+			input: "update tbl set `id` = 1",
+		},
+		{
+			input: "delete from tbl",
+		},
 	}
 
 	for _, tcase := range validSQL {
