@@ -12,7 +12,7 @@ import (
 )
 
 type Sheet struct {
-	srv  *sheets.Service
+	srv     *sheets.Service
 	SheetID string
 }
 
@@ -49,6 +49,7 @@ func NewSpreadSheet(file, sheetID string) (*Sheet, error) {
 	srv, err := sheets.New(client)
 	if err != nil {
 		log.Fatalf("Unable to retrieve Sheets client: %v", err)
+		return nil, err
 	}
 
 	return &Sheet{srv: srv, SheetID: sheetID}, nil

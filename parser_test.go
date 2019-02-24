@@ -12,6 +12,9 @@ func TestGetTableName(t *testing.T) {
 		output string
 	}{
 		{
+			input: "select a, b from tbl",
+		},
+		{
 			input: "select * from tbl",
 		},
 		{
@@ -35,6 +38,37 @@ func TestGetTableName(t *testing.T) {
 			continue
 		}
 		if out != tcase.output {
+			t.Errorf("Parse(%q) = %q, want: %q", tcase.input, out, tcase.output)
+		}
+	}
+}
+
+func TestGetColumnFromSelect(t *testing.T) {
+	validSQL := []struct {
+		input  string
+		output string
+	}{
+		{
+			input:  "select * from tbl",
+			output: "*",
+		},
+		{
+			input:  "select foo, bar from tbl",
+			output: "foobar",
+		},
+	}
+
+	for _, tcase := range validSQL {
+		out, err := sheetsql.GetColumns(tcase.input)
+		if err != nil {
+			t.Errorf("Parse(%q) err: %v, want nil", tcase.input, err)
+			continue
+		}
+		var act = ""
+		for _, col := range out {
+			act += col.Name
+		}
+		if act != tcase.output {
 			t.Errorf("Parse(%q) = %q, want: %q", tcase.input, out, tcase.output)
 		}
 	}

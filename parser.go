@@ -1,7 +1,7 @@
 package sheetsql
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/xwb1989/sqlparser"
 )
@@ -23,6 +23,17 @@ type SheetRange struct {
 
 func (sr *SheetRange) ToRange() string {
 	return sr.Name + "!" + sr.Sp.Format() + ":" + sr.Ep.Format()
+}
+
+type Table struct {
+	Name    string
+	Columns *Columns
+}
+
+type Columns []Column
+
+type Column struct {
+	Name string
 }
 
 func GetTableName(query string) (string, error) {
@@ -49,22 +60,30 @@ func GetTableName(query string) (string, error) {
 	}
 }
 
-func ParseQuery(query string) string {
+func GetColumns(query string) (Columns, error) {
 	stmt, err := sqlparser.Parse(query)
 	if err != nil {
-		// Do something with the err
+		return nil, err
 	}
 
-	fmt.Println(sqlparser.String(stmt))
-	// Otherwise do something with stmt
+	buf := sqlparser.NewTrackedBuffer(nil)
 	switch stmt := stmt.(type) {
 	case *sqlparser.Select:
-		result := sqlparser.String(stmt.From)
-		fmt.Println(result)
-		return result
-	case *sqlparser.Insert:
-		return ""
+		stmt.SelectExprs.Format(buf)
+		tmp := strings.Split(buf.String(), ",")
+		columns := make(Columns, len(tmp))
+		for i, colName := range tmp {
+			columns[i] = Column{Name: strings.TrimSpace(colName)}
+		}
+		return columns, nil
 	default:
-		return ""
+		return nil, nil
 	}
+}
+
+func ParseQuery(query string) *Table {
+	tblName, _ := GetTableName(query)
+	columns, _ := GetColumns(query)
+
+	return &Table{Name: tblName, Columns: &columns}
 }

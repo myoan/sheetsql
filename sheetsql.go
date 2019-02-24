@@ -57,6 +57,7 @@ func (s *SheetStmt) NumInput() int {
 
 func (s *SheetStmt) Query(args []driver.Value) (driver.Rows, error) {
 	tbl, _ := GetTableName(s.query)
+	// exec query
 	return s.GetSheetData(tbl), nil
 }
 
