@@ -2,6 +2,8 @@ package gss
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -55,8 +57,8 @@ func NewSpreadSheet(file, sheetID string) (*Sheet, error) {
 	return &Sheet{srv: srv, SheetID: sheetID}, nil
 }
 
-func (s *Sheet) GetSheetColumn(rng string) []string {
-	resp, err := s.srv.Spreadsheets.Values.Get(s.SheetID, columnRange(rng)).Do()
+func (s *Sheet) GetSheetColumn(tbl string) []string {
+	resp, err := s.srv.Spreadsheets.Values.Get(s.SheetID, columnRange(tbl)).Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve data from sheet: %v", err)
 	}
@@ -68,8 +70,12 @@ func (s *Sheet) GetSheetColumn(rng string) []string {
 	return columns
 }
 
-func (s *Sheet) GetSheetRecord(rng string, len int) [][]interface{} {
-	resp, err := s.srv.Spreadsheets.Values.Get(s.SheetID, rng+"!A1:"+columnAlphabet(len)).Do()
+func columnRange(table string) string {
+	return table + "!A1:1"
+}
+
+func (s *Sheet) GetSheetRecord(tbl string, columns []string) [][]interface{} {
+	resp, err := s.srv.Spreadsheets.Values.Get(s.SheetID, s.tableTarget(tbl, columns)).Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve data from sheet: %v", err)
 	}
@@ -77,10 +83,49 @@ func (s *Sheet) GetSheetRecord(rng string, len int) [][]interface{} {
 	return resp.Values[1:]
 }
 
-func columnRange(table string) string {
-	return table + "!A1:1"
+func (s *Sheet) tableTarget(tbl string, columns []string) string {
+	allCol := s.GetSheetColumn(tbl)
+	min, max := columnToRange(allCol, columns)
+	minAlp, _ := columnAlphabet(min)
+	maxAlp, _ := columnAlphabet(max)
+	return fmt.Sprintf("%s!%s1:%s", tbl, minAlp, maxAlp)
 }
 
-func columnAlphabet(len int) string {
-	return string(64 + len)
+func columnToRange(col1 []string, col2 []string) (int, int) {
+	if len(col2) == 1 {
+		return 1, len(col1)
+	}
+	min := len(col1)
+	max := 0
+	for _, c2 := range col2 {
+		for i, c1 := range col1 {
+			if c1 == c2 {
+				if min > i {
+					min = i
+				}
+				if i > max {
+					max = i
+				}
+			}
+		}
+	}
+	return min + 1, max + 1
+}
+
+func columnAlphabet(len int) (string, error) {
+	if len <= 0 {
+		return "", errors.New("length OutOfRange")
+	}
+	val := len - 1
+	div := val / 26
+	mod := val % 26
+	ret := string(65 + mod)
+	val = div
+	for val > 0 {
+		div := val / 26
+		mod := val % 26
+		ret = string(64+mod) + ret
+		val = div
+	}
+	return ret, nil
 }
