@@ -57,8 +57,7 @@ func (s *SheetStmt) NumInput() int {
 
 func (s *SheetStmt) Query(args []driver.Value) (driver.Rows, error) {
 	tbl, _ := ParseQuery(s.query)
-	data, _ := Eval(s, tbl)
-	return data, nil
+	return Eval(s, tbl)
 }
 
 func (s *SheetStmt) Exec(args []driver.Value) (driver.Result, error) {

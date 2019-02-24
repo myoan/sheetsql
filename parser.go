@@ -30,6 +30,14 @@ type Table struct {
 	Columns *Columns
 }
 
+func (tbl *Table) ColumnNames() []string {
+	result := make([]string, len(*tbl.Columns))
+	for i, col := range *tbl.Columns {
+		result[i] = col.Name
+	}
+	return result
+}
+
 type Columns []Column
 
 type Column struct {
