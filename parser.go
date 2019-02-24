@@ -81,9 +81,9 @@ func GetColumns(query string) (Columns, error) {
 	}
 }
 
-func ParseQuery(query string) *Table {
+func ParseQuery(query string) (*Table, error) {
 	tblName, _ := GetTableName(query)
 	columns, _ := GetColumns(query)
 
-	return &Table{Name: tblName, Columns: &columns}
+	return &Table{Name: tblName, Columns: &columns}, nil
 }

@@ -56,15 +56,9 @@ func (s *SheetStmt) NumInput() int {
 }
 
 func (s *SheetStmt) Query(args []driver.Value) (driver.Rows, error) {
-	tbl, _ := GetTableName(s.query)
-	// exec query
-	return s.GetSheetData(tbl), nil
-}
-
-func (s *SheetStmt) GetSheetData(table string) *SheetRows {
-	columns := s.conn.client.GetSheetColumn(table)
-	records := s.conn.client.GetSheetRecord(table, len(columns))
-	return &SheetRows{s, columns, 0, records}
+	tbl, _ := ParseQuery(s.query)
+	data, _ := Eval(s, tbl)
+	return data, nil
 }
 
 func (s *SheetStmt) Exec(args []driver.Value) (driver.Result, error) {
